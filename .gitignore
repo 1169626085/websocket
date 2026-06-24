@@ -1,0 +1,51 @@
+# Local tool state
+.agents/
+
+# Dependencies
+**/node_modules/
+
+# Build directories
+**/build/
+**/Debug/
+**/Release/
+**/x64/
+.vs/
+CMakeFiles/
+
+# CMake and Visual Studio generated files
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.vcxproj.user
+*.suo
+*.user
+*.tlog
+*.lastbuildstate
+*.recipe
+
+# Compiled artifacts
+*.exe
+*.dll
+*.lib
+*.exp
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+
+# Runtime logs
+*.out
+*.err
+*.log
+
+# Editor temporary files
+*.autosave
+*.tmp
+.qtcreator/
+*.pro.user*
+
+# Local configuration and secrets
+**/config.ini
+**/config copy.ini
+VarifyServer/config.json
