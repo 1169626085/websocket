@@ -6,6 +6,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <functional>
 #include <json/json.h>
 #include <json/value.h>
 #include <json/reader.h>
@@ -24,5 +25,12 @@ enum ErrorCodes{
     VarifyExpired=1004,
     VarifyCodeErr=1005,
     UserExist=1006,
+    PasswdInvalid=1007,
+    RPCGetFailed=1008,
+    UidInvalid=1009,
+    TokenInvalid=1010,
+    UidInvaild=UidInvalid,
+    TokenInvaild=TokenInvalid,
 };
 #define CODEPREFIX  "code_"
+#define USERTOKENPREFIX "utoken_"

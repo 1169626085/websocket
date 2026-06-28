@@ -4,6 +4,7 @@
 #include <QWidget>
 #include "global.h"
 #include <httpmgr.h>
+#include "tcpmgr.h"
 namespace Ui {
 class Loginlog;
 }
@@ -20,8 +21,11 @@ public:
     bool checkUserValid();
     bool checkPwdValid();
     void initHttpHandlers();
+    void slot_login_failed(int err);
+    void slot_tcp_con_finish(bool bsuccess);
 signals:
     void showRegisterRequested();
+    void sig_connect_tcp(ServerInfo si);
 
 private slots:
     void on_loginButton_clicked();
@@ -30,6 +34,8 @@ private slots:
 private:
     Ui::Loginlog *ui;
     QMap<ReqId, std::function<void(const QJsonObject&)>> _handlers;
+    int _uid;
+    QString _token;
 
 };
 

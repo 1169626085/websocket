@@ -6,6 +6,7 @@
 
 # Build directories
 **/build/
+**/build_current/
 **/Debug/
 **/Release/
 **/x64/

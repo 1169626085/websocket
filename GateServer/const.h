@@ -27,6 +27,8 @@ enum ErrorCodes{
     UserExist=1006,
     PasswdInvalid=1007,
     RPCGetFailed=1008,
+    UidInvaild=1009,
+    TokenInvaild=1010,
 };
 
 struct UserInfo {

@@ -14,6 +14,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(SOURCES
     ConfigMgr.cpp
+    RedisMgr.cpp
     StatusServer.cpp
     StatusServiceImpl.cpp
     message.grpc.pb.cc
@@ -44,6 +45,23 @@ set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE BOOL "" FORCE)
 set(gRPC_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(D:/cppsoft/grpc ${CMAKE_BINARY_DIR}/grpc-build)
 
+set(REDIS_ROOT "D:/cppsoft/windows-redis" CACHE PATH "Windows Redis/hiredis root directory")
+find_path(REDIS_INCLUDE_DIR
+    NAMES hiredis/hiredis.h hiredis.h
+    PATHS "${REDIS_ROOT}" "${REDIS_ROOT}/include" "${REDIS_ROOT}/deps/hiredis"
+    NO_DEFAULT_PATH
+)
+find_library(REDIS_LIBRARY
+    NAMES hiredis redis
+    PATHS "${REDIS_ROOT}" "${REDIS_ROOT}/lib" "${REDIS_ROOT}/libs" "${REDIS_ROOT}/x64" "${REDIS_ROOT}/x64/Debug" "${REDIS_ROOT}/x64/Release" "${REDIS_ROOT}/msvs/hiredis/x64/Debug" "${REDIS_ROOT}/msvs/hiredis/x64/Release"
+    NO_DEFAULT_PATH
+)
+find_library(REDIS_INTEROP_LIBRARY
+    NAMES Win32_Interop
+    PATHS "${REDIS_ROOT}/src/Win32_Interop/x64/Debug" "${REDIS_ROOT}/src/Win32_Interop/x64/Release"
+    NO_DEFAULT_PATH
+)
+
 add_executable(StatusServer ${SOURCES})
 
 add_custom_command(TARGET StatusServer POST_BUILD
@@ -63,8 +81,20 @@ target_include_directories(StatusServer PRIVATE
     D:/boost_1_90_0
 )
 
+if(REDIS_INCLUDE_DIR)
+    target_include_directories(StatusServer PRIVATE ${REDIS_INCLUDE_DIR})
+endif()
+
 target_link_libraries(StatusServer PRIVATE
     jsoncpp_static
     grpc++
     libprotobuf
 )
+
+if(REDIS_LIBRARY)
+    target_link_libraries(StatusServer PRIVATE ${REDIS_LIBRARY})
+endif()
+
+if(REDIS_INTEROP_LIBRARY)
+    target_link_libraries(StatusServer PRIVATE ${REDIS_INTEROP_LIBRARY})
+endif()

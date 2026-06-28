@@ -2,7 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-
+#include "chatdialog.h"
 class Loginlog;
 class Registerlog;
 
@@ -19,10 +19,12 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+    void SlotSwitchChat();
 
 private:
     Ui::MainWindow *ui;
     Loginlog *loginLog;
     Registerlog *registerLog;
+    ChatDialog *chatLog;
 };
 #endif // MAINWINDOW_H

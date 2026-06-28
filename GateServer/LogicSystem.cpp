@@ -188,6 +188,7 @@ LogicSystem::LogicSystem()
     root["uid"] = userInfo.uid;
     root["token"] = reply.token();
     root["host"] = reply.host();
+    root["port"]=reply.port();
     std::string jsonstr = root.toStyledString();
     beast::ostream(connection->response_.body()) << jsonstr;
     return true;

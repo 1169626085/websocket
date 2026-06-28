@@ -13,6 +13,7 @@ Loginlog::Loginlog(QWidget *parent)
             this, &Loginlog::showRegisterRequested);
     initHttpHandlers();
     connect(HttpMgr::GetInstance().get(),&HttpMgr::sig_login_mod_finish,this,&Loginlog::slot_login_mod_finish);
+    connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_login_failed, this, &Loginlog::slot_login_failed);
 }
 
 Loginlog::~Loginlog()
@@ -77,7 +78,30 @@ void Loginlog::slot_login_mod_finish(ReqId id, QString res, ErrorCodes err)
     //调用对应的逻辑,根据id回调。
     _handlers[id](jsonDoc.object());
 
+    _handlers[id](jsonDoc.object());
     return;
+}
+
+void Loginlog::slot_tcp_con_finish(bool bsuccess)
+{
+    if(bsuccess){
+        showTip(tr("聊天服务连接成功，正在登录..."),true);
+        QJsonObject jsonObj;
+        jsonObj["uid"] = _uid;
+        jsonObj["token"] = _token;
+
+        QJsonDocument doc(jsonObj);
+        QString jsonString = doc.toJson(QJsonDocument::Indented);
+
+        //发送tcp请求给chat server
+        TcpMgr::GetInstance()->sig_send_data(ReqId::ID_CHAT_LOGIN, jsonString);
+
+    }else{
+        showTip(tr("网络异常"),false);
+
+    }
+
+
 }
 bool Loginlog::checkUserValid(){
 
@@ -110,7 +134,27 @@ void Loginlog::initHttpHandlers()
           return;
       }
       auto user = jsonObj["user"].toString();
+      ServerInfo si;
+      si.Uid = jsonObj["uid"].toInt();
+      si.Host = jsonObj["host"].toString();
+      si.Port = jsonObj["port"].toString();
+      si.Token = jsonObj["token"].toString();
+
+      _uid = si.Uid;
+      _token = si.Token;
+      qDebug()<< "user is " << user << " uid is " << si.Uid <<" host is "
+               << si.Host << " Port is " << si.Port << " Token is " << si.Token;
+      emit sig_connect_tcp(si);
       showTip(tr("登录成功"), true);
-      qDebug()<< "user is " << user ;
+
   });
+}
+
+
+void Loginlog::slot_login_failed(int err)
+{
+    QString result = QString("登录失败, err is %1")
+                         .arg(err);
+    showTip(result,false);
+
 }

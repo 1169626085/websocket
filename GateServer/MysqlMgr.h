@@ -10,6 +10,8 @@ public:
     ~MysqlMgr();
     int RegUser(const std::string& name,const std::string& email,const std::string& pwd);
     bool CheckPwd(const std::string& name,const std::string& pwd,UserInfo& userInfo);
+    std::shared_ptr<UserInfo> GetUser(int uid);
+    
 private:
     MysqlMgr();
     MysqlDao _dao;

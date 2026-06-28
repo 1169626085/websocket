@@ -9,6 +9,8 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
+    chatdialog.cpp \
+    friendapplypage.cpp \
     global.cpp \
     httpmgr.cpp \
     loginlog.cpp \
@@ -16,9 +18,12 @@ SOURCES += \
     mainwindow.cpp \
     registerlog.cpp \
     tcpmgr.cpp \
-    timerbtn.cpp
+    timerbtn.cpp \
+    usermgr.cpp
 
 HEADERS += \
+    chatdialog.h \
+    friendapplypage.h \
     global.h \
     httpmgr.h \
     loginlog.h \
@@ -26,9 +31,12 @@ HEADERS += \
     registerlog.h \
     singleton.h \
     tcpmgr.h \
-    timerbtn.h
+    timerbtn.h \
+    usermgr.h
 
 FORMS += \
+    chatdialog.ui \
+    friendapplypage.ui \
     loginlog.ui \
     mainwindow.ui \
     registerlog.ui
