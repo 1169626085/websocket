@@ -26,6 +26,7 @@ class StatusServiceImpl final : public StatusService::Service
 public:
     StatusServiceImpl();
     Status GetChatServer(ServerContext* context,const GetChatServerReq* request,GetChatServerRsp* reply) override;
+    ChatServer getChatServer();
     void insertToken(int uid,std::string token);
     Status Login(ServerContext* context, const LoginReq* request, LoginRsp* reply) override;
     std::vector<ChatServer> _servers;

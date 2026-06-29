@@ -17,6 +17,7 @@ public:
     CServer(boost::asio::io_context& io,unsigned short port);
     ~CServer();
     void ClearSession(int uuid);
+    void ClearSession(std::string session_id);
   
 
 private:

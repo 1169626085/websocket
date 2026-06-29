@@ -60,10 +60,10 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
     Json::Reader reader;
     Json::Value root;
     reader.parse(msg_data, root);
-
+    auto token=root["token"].asString();
     auto uid = root["uid"].asInt();
     std::cout << "user login uid is " << uid << " user token is "
-              << root["token"].asString() << std::endl;
+              << token << std::endl;
 
     auto rsp = StatusGrpcClient::GetInstance()->Login(uid, root["token"].asString());
     Json::Value rtvalue;
@@ -72,25 +72,67 @@ void LogicSystem::LoginHandler(std::shared_ptr<CSession> session, const short& m
         session->Send(return_str, MSG_CHAT_LOGIN_RSP);
     });
 
-    rtvalue["error"] = rsp.error();
-    if (rsp.error() != ErrorCodes::Success) {
+    std::string uid_str = std::to_string(uid);
+    std::string token_key = USERTOKENPREFIX + uid_str;
+    std::string token_value="";
+    bool success = RedisMgr::GetInstance()->Get(token_key,token_value);
+    if(!success){
+        rtvalue["error"]=ErrorCodes::UidInvaild;
+        return;
+    }
+    if(token_value !=token){
+        rtvalue["error"]=ErrorCodes::TokenInvaild;
         return;
     }
 
-    auto find_iter = _users.find(uid);
-    std::shared_ptr<UserInfo> user_info = nullptr;
-    if (find_iter == _users.end()) {
-        user_info = MysqlMgr::GetInstance()->GetUser(uid);
-        if (user_info == nullptr) {
-            rtvalue["error"] = ErrorCodes::UidInvaild;
-            return;
-        }
-        _users[uid] = user_info;
-    } else {
-        user_info = find_iter->second;
+    rtvalue["error"]=ErrorCodes::Success;
+
+    std::string base_key = USER_BASE_INFO + uid_str;
+    auto user_info = std::make_shared<UserInfo>();
+    bool b_base = GetBaseInfo(base_key,uid,user_info);
+    if(!b_base){
+        rtvalue["error"] = ErrorCodes::UidInvalid;
+        return;
     }
+
+
 
     rtvalue["uid"] = uid;
     rtvalue["token"] = rsp.token();
+    rtvalue["pwd"] = user_info->pwd;
     rtvalue["name"] = user_info->name;
+    rtvalue["email"] = user_info->email;
+    rtvalue["nick"] = user_info->nick;
+    rtvalue["desc"] = user_info->desc;
+    rtvalue["sex"] = user_info->sex;
+    rtvalue["icon"] = user_info->icon;
+
+     //从数据库获取申请列表
+
+    //获取好友列表
+
+    auto server_name = ConfigMgr::Inst().GetValue("SelfServer", "Name");
+    //将登录数量增加
+    auto rd_res = RedisMgr::GetInstance()->HGet(LOGIN_COUNT, server_name);
+    int count = 0;
+    if (!rd_res.empty()) {
+        count = std::stoi(rd_res);
+    }
+
+    count++;
+
+    auto count_str = std::to_string(count);
+    RedisMgr::GetInstance()->HSet(LOGIN_COUNT, server_name, count_str);
+
+    //session绑定用户uid
+    session->SetUserId(uid);
+
+    //为用户设置登录ip server的名字
+    std::string  ipkey = USERIPPREFIX + uid_str;
+    RedisMgr::GetInstance()->Set(ipkey, server_name);
+
+    //uid和session绑定管理,方便以后踢人操作
+    UserMgr::GetInstance()->SetUserSession(uid, session);
+
+    return;
 }
