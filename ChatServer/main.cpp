@@ -1,10 +1,13 @@
 #include "LogicSystem.h"
+#include "ChatServiceImpl.h"
+#include <grpcpp/grpcpp.h>
 #include <csignal>
 #include <thread>
 #include <mutex>
 #include "AsioIOServicePool.h"
 #include "CServer.h"
 #include "ConfigMgr.h"
+#include "RedisMgr.h"
 using namespace std;
 bool bstop = false;
 std::condition_variable cond_quit;
@@ -42,7 +45,7 @@ int main()
 
         boost::asio::io_context io_context;
         boost::asio::signal_set signals(io_context,SIGINT,SIGTERM);
-        signals.async_wait([&io_context, pool](auto, auto) {
+        signals.async_wait([&io_context, pool, &server](auto, auto) {
             io_context.stop();
             pool->Stop();
             server->Shutdown();

@@ -29,6 +29,10 @@ Status StatusServiceImpl::GetChatServer(ServerContext* context, const GetChatSer
 ChatServer StatusServiceImpl::getChatServer()
 {
     std::lock_guard<std::mutex> guard(_server_mtx);
+    if (_servers.empty()) {
+        return ChatServer();
+    }
+
     auto minServer = _servers.begin()->second;
     auto count_str = RedisMgr::GetInstance()->HGet(LOGIN_COUNT, minServer.name);
     if (count_str.empty()) {
@@ -94,11 +98,13 @@ StatusServiceImpl::StatusServiceImpl() : _server_index(0)
 {
     auto& cfg = ConfigMgr::Inst();
     ChatServer server;
+    server.name = cfg["ChatServer1"]["Name"].empty() ? "chatserver1" : cfg["ChatServer1"]["Name"];
     server.port = cfg["ChatServer1"]["Port"];
     server.host = cfg["ChatServer1"]["Host"];
-    _servers.push_back(server);
+    _servers[server.name] = server;
 
+    server.name = cfg["ChatServer2"]["Name"].empty() ? "chatserver2" : cfg["ChatServer2"]["Name"];
     server.port = cfg["ChatServer2"]["Port"];
     server.host = cfg["ChatServer2"]["Host"];
-    _servers.push_back(server);
+    _servers[server.name] = server;
 }

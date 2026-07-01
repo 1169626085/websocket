@@ -7,6 +7,10 @@ GetChatServerRsp StatusGrpcClient::GetChatServer(int uid)
     GetChatServerReq request;
     request.set_uid(uid);
     auto stub = pool_->getConnection();
+    if (stub == nullptr) {
+        reply.set_error(ErrorCodes::RPCFailed);
+        return reply;
+    }
     Status status = stub->GetChatServer(&context, request, &reply);
     Defer defer([&stub, this]() {
         pool_->returnConnection(std::move(stub));
@@ -28,6 +32,10 @@ LoginRsp StatusGrpcClient::Login(int uid, const std::string& token)
     request.set_uid(uid);
     request.set_token(token);
     auto stub = pool_->getConnection();
+    if (stub == nullptr) {
+        reply.set_error(ErrorCodes::RPCFailed);
+        return reply;
+    }
     Status status = stub->Login(&context, request, &reply);
     Defer defer([&stub, this]() {
         pool_->returnConnection(std::move(stub));

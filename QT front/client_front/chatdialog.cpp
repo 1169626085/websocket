@@ -1,5 +1,6 @@
 #include "chatdialog.h"
 #include "friendapplypage.h"
+#include "tcpmgr.h"
 #include "ui_chatdialog.h"
 
 #include <QFrame>
@@ -17,21 +18,33 @@ ChatDialog::ChatDialog(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::ChatDialog)
     , friendApplyPage(nullptr)
+    , friendApplyRedDot(nullptr)
+    , hasFriendApplyUnread(false)
 {
     ui->setupUi(this);
+    friendApplyRedDot = new QLabel(ui->addToolButton);
+    friendApplyRedDot->setFixedSize(9, 9);
+    friendApplyRedDot->setStyleSheet("background:#ef4444;border-radius:4px;");
+    friendApplyRedDot->move(ui->addToolButton->width() - 12, 6);
+    friendApplyRedDot->raise();
+    friendApplyRedDot->hide();
+    set_apply_red_dot(false);
 
     load_conversation_list();
     load_contact_list();
-    if (ui->conversationList->count() > 0) {
-        ui->conversationList->setCurrentRow(0);
-        load_messages(ui->conversationList->item(0)->data(Qt::UserRole).toString());
-    }
+    clear_messages();
+    ui->chatTitleLabel->setText("选择一个好友");
+    ui->chatSubTitleLabel->setText("");
+    ui->receiveButton->hide();
 
     connect(ui->sendButton, &QPushButton::clicked, this, &ChatDialog::slot_send_message);
     connect(ui->receiveButton, &QPushButton::clicked, this, &ChatDialog::slot_receive_message);
     connect(ui->addToolButton, &QToolButton::clicked, this, &ChatDialog::slot_show_friend_apply);
     connect(ui->newChatButton, &QPushButton::clicked, this, &ChatDialog::slot_show_friend_apply);
     connect(ui->conversationList, &QListWidget::currentItemChanged, this, &ChatDialog::slot_switch_conversation);
+    connect(ui->contactList, &QListWidget::itemDoubleClicked, this, &ChatDialog::slot_open_contact_conversation);
+    connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_friend_apply_notify, this, &ChatDialog::slot_friend_apply_notify);
+    connect(TcpMgr::GetInstance().get(), &TcpMgr::sig_friend_auth_notify, this, &ChatDialog::slot_friend_auth_notify);
 }
 
 ChatDialog::~ChatDialog()
@@ -60,14 +73,24 @@ void ChatDialog::slot_show_friend_apply()
     if (friendApplyPage == nullptr) {
         friendApplyPage = new FriendApplyPage();
         friendApplyPage->setAttribute(Qt::WA_DeleteOnClose);
+        connect(friendApplyPage, &FriendApplyPage::sig_apply_accepted, this, [this](int fromUid, const QString& fromName) {
+            remove_pending_apply(fromUid);
+            if (!fromName.isEmpty()) {
+                add_contact_item(fromName, "online");
+                open_or_create_conversation(fromName, "你们已经成为好友");
+            }
+        });
         connect(friendApplyPage, &QObject::destroyed, this, [this]() {
             friendApplyPage = nullptr;
         });
     }
 
+    sync_pending_applies_to_page();
     friendApplyPage->show();
     friendApplyPage->raise();
     friendApplyPage->activateWindow();
+    hasFriendApplyUnread = false;
+    set_apply_red_dot(false);
 }
 
 void ChatDialog::slot_switch_conversation(QListWidgetItem *current)
@@ -79,22 +102,51 @@ void ChatDialog::slot_switch_conversation(QListWidgetItem *current)
     load_messages(current->data(Qt::UserRole).toString());
 }
 
+void ChatDialog::slot_open_contact_conversation(QListWidgetItem *item)
+{
+    if (item == nullptr) {
+        return;
+    }
+
+    open_or_create_conversation(item->data(Qt::UserRole).toString());
+}
+
+void ChatDialog::slot_friend_apply_notify(std::shared_ptr<FriendApplyInfo> apply)
+{
+    bool exists = false;
+    for (const auto& item : pendingFriendApplies) {
+        if (item->_fromUid == apply->_fromUid) {
+            exists = true;
+            break;
+        }
+    }
+    if (!exists) {
+        pendingFriendApplies.push_back(apply);
+    }
+
+    hasFriendApplyUnread = true;
+    set_apply_red_dot(true);
+    if (friendApplyPage != nullptr) {
+        friendApplyPage->set_pending_applies(pendingFriendApplies);
+    }
+}
+
+void ChatDialog::slot_friend_auth_notify(int fromUid, int toUid, QString fromName)
+{
+    Q_UNUSED(fromUid);
+    Q_UNUSED(toUid);
+    add_contact_item(fromName, "online");
+    open_or_create_conversation(fromName, "你们已经成为好友");
+}
+
 void ChatDialog::load_conversation_list()
 {
     ui->conversationList->clear();
-    add_conversation_item("Ada", "The login flow is ready.", "09:42", 2);
-    add_conversation_item("Ming", "Can you check the status server?", "08:31", 0);
-    add_conversation_item("Qt Group", "UI draft updated.", "Yesterday", 5);
-    add_conversation_item("Lin", "Redis is connected now.", "Mon", 0);
 }
 
 void ChatDialog::load_contact_list()
 {
     ui->contactList->clear();
-    add_contact_item("Ada", "online");
-    add_contact_item("Ming", "busy");
-    add_contact_item("Lin", "offline");
-    add_contact_item("Chen", "online");
 }
 
 void ChatDialog::load_messages(const QString &name)
@@ -104,13 +156,15 @@ void ChatDialog::load_messages(const QString &name)
     ui->chatTitleLabel->setText(name);
     ui->chatSubTitleLabel->setText("online");
 
-    add_message_bubble(name, "I prepared the chat view draft.", "09:30", false);
-    add_message_bubble("Me", "Great. The list and message area should both load dynamically.", "09:34", true);
-    add_message_bubble(name, "Then I will add bubble messages too.", "09:40", false);
+    Q_UNUSED(name);
 }
 
 void ChatDialog::add_conversation_item(const QString &name, const QString &message, const QString &time, int unread)
 {
+    if (name.isEmpty() || has_conversation(name)) {
+        return;
+    }
+
     QListWidgetItem *item = new QListWidgetItem(ui->conversationList);
     item->setData(Qt::UserRole, name);
     item->setSizeHint(QSize(248, 70));
@@ -164,7 +218,12 @@ void ChatDialog::add_conversation_item(const QString &name, const QString &messa
 
 void ChatDialog::add_contact_item(const QString &name, const QString &status)
 {
+    if (name.isEmpty() || has_contact(name)) {
+        return;
+    }
+
     QListWidgetItem *item = new QListWidgetItem(ui->contactList);
+    item->setData(Qt::UserRole, name);
     item->setSizeHint(QSize(248, 48));
 
     QWidget *row = new QWidget(ui->contactList);
@@ -251,5 +310,75 @@ void ChatDialog::clear_messages()
             item->widget()->deleteLater();
         }
         delete item;
+    }
+}
+
+void ChatDialog::set_apply_red_dot(bool visible)
+{
+    ui->addToolButton->setText("+");
+    if (friendApplyRedDot != nullptr) {
+        friendApplyRedDot->move(ui->addToolButton->width() - 12, 6);
+        friendApplyRedDot->setVisible(visible);
+        friendApplyRedDot->raise();
+    }
+}
+
+void ChatDialog::sync_pending_applies_to_page()
+{
+    if (friendApplyPage == nullptr) {
+        return;
+    }
+    friendApplyPage->set_pending_applies(pendingFriendApplies);
+}
+
+void ChatDialog::remove_pending_apply(int fromUid)
+{
+    for (int i = 0; i < pendingFriendApplies.size(); ++i) {
+        if (pendingFriendApplies[i]->_fromUid == fromUid) {
+            pendingFriendApplies.removeAt(i);
+            break;
+        }
+    }
+}
+
+bool ChatDialog::has_conversation(const QString& name) const
+{
+    for (int i = 0; i < ui->conversationList->count(); ++i) {
+        auto* item = ui->conversationList->item(i);
+        if (item != nullptr && item->data(Qt::UserRole).toString() == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool ChatDialog::has_contact(const QString& name) const
+{
+    for (int i = 0; i < ui->contactList->count(); ++i) {
+        auto* item = ui->contactList->item(i);
+        if (item != nullptr && item->data(Qt::UserRole).toString() == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void ChatDialog::open_or_create_conversation(const QString& name, const QString& message)
+{
+    if (name.isEmpty()) {
+        return;
+    }
+
+    if (!has_conversation(name)) {
+        add_conversation_item(name, message, "now", 0);
+    }
+
+    for (int i = 0; i < ui->conversationList->count(); ++i) {
+        auto* item = ui->conversationList->item(i);
+        if (item != nullptr && item->data(Qt::UserRole).toString() == name) {
+            ui->conversationList->setCurrentItem(item);
+            load_messages(name);
+            return;
+        }
     }
 }

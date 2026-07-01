@@ -14,13 +14,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(SOURCES
     AsioIOServicePool.cpp
+    ChatGrpcClient.cpp
+    ChatServiceImpl.cpp
     ConfigMgr.cpp
     CServer.cpp
     CSession.cpp
     LogicSystem.cpp
     MysqlDao.cpp
     MysqlMgr.cpp
+    RedisMgr.cpp
     StatusGrpcClient.cpp
+    UserMgr.cpp
     main.cpp
     message.grpc.pb.cc
     message.pb.cc
@@ -49,6 +53,23 @@ set(gRPC_BUILD_GRPC_PYTHON_PLUGIN OFF CACHE BOOL "" FORCE)
 set(gRPC_BUILD_GRPC_RUBY_PLUGIN OFF CACHE BOOL "" FORCE)
 set(gRPC_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(D:/cppsoft/grpc ${CMAKE_BINARY_DIR}/grpc-build)
+
+set(REDIS_ROOT "D:/cppsoft/windows-redis" CACHE PATH "Windows Redis/hiredis root directory")
+find_path(REDIS_INCLUDE_DIR
+    NAMES hiredis/hiredis.h hiredis.h
+    PATHS "${REDIS_ROOT}" "${REDIS_ROOT}/include" "${REDIS_ROOT}/deps/hiredis"
+    NO_DEFAULT_PATH
+)
+find_library(REDIS_LIBRARY
+    NAMES hiredis redis
+    PATHS "${REDIS_ROOT}" "${REDIS_ROOT}/lib" "${REDIS_ROOT}/libs" "${REDIS_ROOT}/x64" "${REDIS_ROOT}/x64/Debug" "${REDIS_ROOT}/x64/Release" "${REDIS_ROOT}/msvs/hiredis/x64/Debug" "${REDIS_ROOT}/msvs/hiredis/x64/Release"
+    NO_DEFAULT_PATH
+)
+find_library(REDIS_INTEROP_LIBRARY
+    NAMES Win32_Interop
+    PATHS "${REDIS_ROOT}/src/Win32_Interop/x64/Debug" "${REDIS_ROOT}/src/Win32_Interop/x64/Release"
+    NO_DEFAULT_PATH
+)
 
 set(MYSQL_CONCPP_ROOT "D:/cppsoft/mysql-connector-c++-8.3.0-winx64" CACHE PATH "MySQL Connector/C++ root directory")
 find_path(MYSQL_CONCPP_INCLUDE_DIR
@@ -93,6 +114,10 @@ if(MYSQL_CONCPP_INCLUDE_DIR)
     )
 endif()
 
+if(REDIS_INCLUDE_DIR)
+    target_include_directories(ChatServer PRIVATE ${REDIS_INCLUDE_DIR})
+endif()
+
 target_link_libraries(ChatServer PRIVATE
     jsoncpp_static
     grpc++
@@ -105,6 +130,14 @@ endif()
 
 if(MYSQL_CONCPP_XDEVAPI_LIBRARY)
     target_link_libraries(ChatServer PRIVATE ${MYSQL_CONCPP_XDEVAPI_LIBRARY})
+endif()
+
+if(REDIS_LIBRARY)
+    target_link_libraries(ChatServer PRIVATE ${REDIS_LIBRARY})
+endif()
+
+if(REDIS_INTEROP_LIBRARY)
+    target_link_libraries(ChatServer PRIVATE ${REDIS_INTEROP_LIBRARY})
 endif()
 
 if(EXISTS "${MYSQL_CONCPP_ROOT}/lib64/debug")

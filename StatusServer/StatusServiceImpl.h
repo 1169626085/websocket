@@ -17,8 +17,10 @@ using message::StatusService;
 
 struct ChatServer
 {
+    std::string name;
     std::string host;
     std::string port;
+    int con_count = 0;
 };
 
 class StatusServiceImpl final : public StatusService::Service
@@ -29,8 +31,9 @@ public:
     ChatServer getChatServer();
     void insertToken(int uid,std::string token);
     Status Login(ServerContext* context, const LoginReq* request, LoginRsp* reply) override;
-    std::vector<ChatServer> _servers;
+    std::map<std::string, ChatServer> _servers;
     int _server_index;
+    std::mutex _server_mtx;
     std::mutex _token_mtx;
     std::map<int, std::string> _tokens;
 };

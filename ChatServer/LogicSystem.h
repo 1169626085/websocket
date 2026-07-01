@@ -25,12 +25,25 @@ public:
     void RegisterCallBacks(){
         _fun_callbacks[MSG_CHAT_LOGIN]=std::bind(&LogicSystem::LoginHandler,this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        _fun_callbacks[MSG_SEARCH_USER_REQ]=std::bind(&LogicSystem::SearchUserHandler,this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        _fun_callbacks[MSG_ADD_FRIEND_REQ]=std::bind(&LogicSystem::AddFriendHandler,this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+        _fun_callbacks[MSG_AUTH_FRIEND_REQ]=std::bind(&LogicSystem::AuthFriendHandler,this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
     }
     void LoginHandler(std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data);
+    void SearchUserHandler(std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data);
+    void AddFriendHandler(std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data);
+    void AuthFriendHandler(std::shared_ptr<CSession> session, const short &msg_id, const std::string &msg_data);
     void PostMsgToQue(std::shared_ptr<LogicNode> msg);
     void DealMsg();
-
+    bool NotifyAddFriend(int from_uid, int to_uid, const std::string& from_name, const std::string& message);
+    bool NotifyAuthFriend(int from_uid, int to_uid, const std::string& from_name);
+    
 private:
+    bool ParseJson(const std::string& msg_data, Json::Value& root);
+    Json::Value UserToJson(const UserInfo& user);
     LogicSystem();
     bool _b_stop;
     std::thread _worker_thread;

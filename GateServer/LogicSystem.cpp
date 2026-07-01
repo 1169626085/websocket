@@ -125,9 +125,10 @@ LogicSystem::LogicSystem()
         return true;
     }
     int uid = MysqlMgr::GetInstance()->RegUser(name, email, pwd);
-    if (uid == 0 || uid == -1) {
+    if (uid <= 0) {
         std::cout << " user or email exist" << std::endl;
         root["error"] = ErrorCodes::UserExist;
+        root["uid"] = uid;
         std::string jsonstr = root.toStyledString();
         beast::ostream(connection->response_.body()) << jsonstr;
         return true;

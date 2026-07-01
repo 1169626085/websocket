@@ -1,6 +1,7 @@
 #ifndef TCPMGR_H
 #define TCPMGR_H
 #include <QTcpSocket>
+#include <QVector>
 #include "singleton.h"
 #include "global.h"
 #include "usermgr.h"
@@ -17,7 +18,7 @@ private:
     QByteArray _buffer;
     bool _b_recv_pending;
     quint16 _message_id;
-    quint16 _message_len;
+    quint32 _message_len;
     void initHandlers();
     void handleMSg(ReqId id,int len,QByteArray data);
     QMap<ReqId, std::function<void(ReqId id, int len, QByteArray data)>> _handlers;
@@ -29,6 +30,11 @@ signals:
     void sig_send_data(ReqId reqId, QString data);
     void sig_login_failed(int);
     void sig_swich_chatdlg();
+    void sig_user_search(QVector<std::shared_ptr<SearchInfo>>);
+    void sig_add_friend_result(int error, int toUid, QString toName);
+    void sig_friend_apply_notify(std::shared_ptr<FriendApplyInfo>);
+    void sig_auth_friend_result(int error, int fromUid);
+    void sig_friend_auth_notify(int fromUid, int toUid, QString fromName);
 
 
 };

@@ -38,11 +38,14 @@ public:
     void asyncReadLen(std::size_t read_len, std::size_t total_len, 
     std::function<void(const boost::system::error_code&, std::size_t)> handler);
     void AsyncReadBody(int total_len);
+    void SetUserId(int uid);
+    int GetUserId() const;
 
 private:
     tcp::socket _socket;
     CServer* _server;
     int _uuid;
+    int _user_id;
     bool _closed;
     char _data[MAX_LENGTH + 1];
     std::shared_ptr<MsgNode> _recv_head_node;

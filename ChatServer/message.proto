@@ -39,3 +39,39 @@ message GetChatServerRsp {
   string token = 4;
 }
 
+message AddFriendReq {
+  int32 from_uid = 1;
+  int32 to_uid = 2;
+  string from_name = 3;
+  string message = 4;
+}
+
+message AddFriendRsp {
+  int32 error = 1;
+}
+
+message AuthFriendReq {
+  int32 from_uid = 1;
+  int32 to_uid = 2;
+  string from_name = 3;
+}
+
+message AuthFriendRsp {
+  int32 error = 1;
+}
+
+message TextChatMsgReq {
+  int32 from_uid = 1;
+  int32 to_uid = 2;
+  string content = 3;
+}
+
+message TextChatMsgRsp {
+  int32 error = 1;
+}
+
+service ChatService {
+  rpc NotifyAddFriend(AddFriendReq) returns (AddFriendRsp) {}
+  rpc NotifyAuthFriend(AuthFriendReq) returns (AuthFriendRsp) {}
+  rpc NotifyTextChatMsg(TextChatMsgReq) returns (TextChatMsgRsp) {}
+}

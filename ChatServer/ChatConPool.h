@@ -1,5 +1,15 @@
 #pragma once
 #include "const.h"
+#include "message.grpc.pb.h"
+#include <atomic>
+#include <condition_variable>
+#include <grpcpp/grpcpp.h>
+#include <mutex>
+#include <queue>
+
+using grpc::Channel;
+using message::ChatService;
+
 class ChatConPool{
 public:
         ChatConPool(size_t poolSize, std::string host, std::string port):
@@ -49,7 +59,7 @@ public:
         cond_.notify_all();
     }
 private:
-    atomic<bool> b_stop_;
+    std::atomic<bool> b_stop_;
     size_t poolSize_;
     std::string host_;
     std::string port_;

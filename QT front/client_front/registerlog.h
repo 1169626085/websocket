@@ -23,8 +23,8 @@ signals:
     void backToLoginRequested();
 
 private slots:
-    void on_registerButton_clicked();
-    void on_getVarifyCodeButton_clicked();
+    void slot_register();
+    void slot_get_varify_code();
 
 private:
     Ui::Registerlog *ui;

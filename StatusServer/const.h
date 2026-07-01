@@ -34,3 +34,4 @@ enum ErrorCodes{
 };
 #define CODEPREFIX  "code_"
 #define USERTOKENPREFIX "utoken_"
+#define LOGIN_COUNT "login_count"

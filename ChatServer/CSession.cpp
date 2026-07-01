@@ -1,6 +1,9 @@
 #include "CSession.h"
+#include "ConfigMgr.h"
 #include "CServer.h"
 #include "LogicSystem.h"
+#include "RedisMgr.h"
+#include "UserMgr.h"
 
 static std::atomic<int> session_uuid{1};
 
@@ -8,6 +11,7 @@ CSession::CSession(boost::asio::io_context& io_context, CServer* server)
     : _socket(io_context),
       _server(server),
       _uuid(session_uuid++),
+      _user_id(0),
       _closed(false),
       _recv_head_node(std::make_shared<MsgNode>(HEAD_TOTAL_LEN))
 {
@@ -160,6 +164,28 @@ void CSession::Close()
         return;
     }
     _closed = true;
+    if (_user_id > 0) {
+        const auto server_name = ConfigMgr::Inst()["SelfServer"]["Name"];
+        const auto user_ip_key = USERIPPREFIX + std::to_string(_user_id);
+        std::string online_server;
+        if (RedisMgr::GetInstance()->Get(user_ip_key, online_server) && online_server == server_name) {
+            RedisMgr::GetInstance()->Del(user_ip_key);
+        }
+
+        const auto count_value = RedisMgr::GetInstance()->HGet(LOGIN_COUNT, server_name);
+        if (!count_value.empty()) {
+            try {
+                int count = std::stoi(count_value);
+                if (count > 0) {
+                    RedisMgr::GetInstance()->HSet(LOGIN_COUNT, server_name, std::to_string(count - 1));
+                }
+            }
+            catch (const std::exception&) {
+            }
+        }
+
+        UserMgr::GetInstance()->RmvUserSession(_user_id);
+    }
     boost::system::error_code ec;
     _socket.close(ec);
 }
@@ -172,4 +198,14 @@ tcp::socket& CSession::GetSocket()
 int CSession::GetUuid() const
 {
     return _uuid;
+}
+
+void CSession::SetUserId(int uid)
+{
+    _user_id = uid;
+}
+
+int CSession::GetUserId() const
+{
+    return _user_id;
 }

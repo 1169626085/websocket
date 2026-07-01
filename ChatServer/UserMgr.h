@@ -1,5 +1,7 @@
 #pragma once
 #include "const.h"
+#include "Singleton.h"
+
 class CSession;
 class UserMgr : public Singleton<UserMgr>
 {
@@ -12,6 +14,6 @@ public:
 private:
     UserMgr();
     std::mutex _session_mtx;
-    std::unordered_map<int,std::shared_ptr<CSeesion>> _uid_to_session;
+    std::unordered_map<int,std::shared_ptr<CSession>> _uid_to_session;
 
 };

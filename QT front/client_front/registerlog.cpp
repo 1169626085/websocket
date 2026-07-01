@@ -2,6 +2,7 @@
 #include "ui_registerlog.h"
 
 #include <QPushButton>
+#include <QRegularExpression>
 
 Registerlog::Registerlog(QWidget *parent)
     : QWidget(parent)
@@ -14,6 +15,10 @@ Registerlog::Registerlog(QWidget *parent)
 
     connect(ui->backToLoginButton, &QPushButton::clicked,
             this, &Registerlog::backToLoginRequested);
+    connect(ui->registerButton, &QPushButton::clicked,
+            this, &Registerlog::slot_register);
+    connect(ui->getVarifyCodeButton, &QPushButton::clicked,
+            this, &Registerlog::slot_get_varify_code);
     connect(HttpMgr::GetInstance().get(),&HttpMgr::sig_reg_mod_finish,this,&Registerlog::slot_reg_mod_finish);
 }
 
@@ -83,7 +88,7 @@ void Registerlog::initHttpHandlers()
     });
 }
 
-void Registerlog::on_registerButton_clicked()
+void Registerlog::slot_register()
 {
     if(ui->accountLineEdit->text() == ""){
         showTip(tr("用户名不能为空"), false);
@@ -126,7 +131,7 @@ void Registerlog::on_registerButton_clicked()
                                         json_obj, ReqId::ID_REG_USER,Modules::REGISTERMOD);
 }
 
-void Registerlog::on_getVarifyCodeButton_clicked()
+void Registerlog::slot_get_varify_code()
 {
     auto email=ui->emailLineEdit->text();
     QRegularExpression regex(R"((\w+)(\.|_)?(\w*)@(\w+)(\.(\w+))+)");
